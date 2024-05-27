@@ -1,0 +1,187 @@
+﻿@using BookingAds.Entities
+@using BookingAds.Modules
+@using BookingAds.Controllers
+@using BookingAds.Constants
+@model BookingAds.Models.HistoryOrderProduct.ViewIndex
+@{
+    ViewBag.Title = "SearchHistoryOrder";
+    Layout = null;
+    var currentEmployee = ConvertUtils<Employee>.Deserialize(User.Identity.Name);
+}
+
+
+<table class="table table-bordered">
+    <tbody>
+        <tr>
+            <th style="width:0px"></th>
+            <th>Tên Dịch Vụ</th>
+            <th>Thời Gian Đặt </th>
+            <th>Hình thức thanh toán</th>
+            <th>Trạng Thái</th>
+            <th style="width:120px">Link Bằng Chứng</th>
+            <th style="width:120px" class="text-center">Hành Động</th>
+        </tr>
+    </tbody>
+    <tbody id="tbodyHistory">
+        @if (Model.Data.Count == 0)
+        {
+            <tr class="text-danger text-center" style="font-weight: bold;">
+                <td colspan="6">Không có bản ghi nào.</td>
+            </tr>
+        }
+        @foreach (var items in Model.Data)
+        {
+            <tr>
+                <td></td>
+                <td>@items.Product.ProductName</td>
+                <td>
+                    @DateTimeUtils.ConvertToExposeTime(items.OrderedTime)
+                </td>
+                <td>@(items.Type == PayTypeConstant.CASH ? "" : "Ví điện tử")</td>
+                <td id="status-@items.OrderID">
+                    @if (items.Status == OrderStatus.PENDING.Code)
+                    {
+                        <span class="badge bg-primary">@OrderStatus.PENDING.Message</span>
+                    }
+                    else if (items.Status == OrderStatus.WAITING.Code)
+                    {
+                        <span class="badge bg-yellow">@OrderStatus.WAITING.Message</span>
+                    }
+                    else if (items.Status == OrderStatus.PAYING.Code)
+                    {
+                        <span class="badge bg-yellow">@OrderStatus.PAYING.Message</span>
+                    }
+                    else if (items.Status == OrderStatus.SUCCESSED.Code)
+                    {
+                        <span class="badge bg-green">@OrderStatus.SUCCESSED.Message</span>
+                    }
+                    else if (items.Status == OrderStatus.FAILED.Code)
+                    {
+                        <span class="badge bg-red">@OrderStatus.FAILED.Message</span>
+                    }
+                    else if (items.Status == OrderStatus.CANCELED.Code)
+                    {
+                        <span class="badge bg-red">@OrderStatus.CANCELED.Message</span>
+                    }
+                    else if (items.Status == OrderStatus.REJECTED.Code)
+                    {
+                        <span class="badge bg-red">@OrderStatus.REJECTED.Message</span>
+                    }
+                </td>
+
+                @if (items.Textlink != null)
+                {
+
+                <th id="textlink-@items.OrderID">
+                    <a href="@items.Textlink" class="button-link" style=" display: inline-block; background-color: #4CAF50; color: white; padding: 10px 20px; text-align: center; text-decoration: none; font-size: 9px; border: none; border-radius: 5px; cursor: pointer;">Link bằng chứng</a>
+                    
+                </th>
+                }
+                else
+                {
+                    <th></th>
+
+                }
+
+
+                @if (items.Status == OrderStatus.PENDING.Code)
+                {
+                    <td id="btnAction-@items.OrderID" class="text-center">
+
+                        <button type="button" class="btn btn-warning" data-title="Edit" data-toggle="modal" 
+                                data-target="#editOrder-@items.OrderID"><i class="glyphicon glyphicon-edit"></i></button>
+                        
+                        @* Modal Edit Order *@
+                        <div class="modal fade" id="editOrder-@items.OrderID" tabindex="-1" role="dialog" aria-labelledby="edit" 
+                                aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content" style="border-radius: 10px;">
+                                    <div class="modal-header">
+                                        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+                                            <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+                                        </button>
+                                        <h4 class="modal-title custom_align" id="Heading">Sửa đặt quảng cáo</h4>
+                                        <p class="error-msg" id="errMsgEditOrder"></p>
+                                    </div>
+                                    <div class="modal-body">
+                                        <div class="form-group">
+                                            <input type="hidden" class="editProductID" />
+                                            <input type="hidden" class="editProductName" />
+                                            <input type="hidden" class="editProductPrice" />
+                                            <input class="form-control searchProductName" 
+                                                   data-orderid="@items.OrderID"
+                                                   type="text" placeholder="Nhập tên quảng cáo" />
+                                        </div>
+                                        <div class="form-group">
+                                            <ol id="listProducts-@items.OrderID" style="line-height:180%">
+                                            </ol>
+                                        </div>
+
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btnEditOrder btn btn-warning btn-lg"
+                                                data-id="@items.OrderID"
+                                                data-fromUserName="@currentEmployee.UserName"
+                                                data-employeeUserName="@items.Employee.UserName"
+                                                data-orderedTime="@items.OrderedTime"
+                                                data-payType="@items.Type"
+                                                data-textlink="@items.Textlink"
+                                                data-url="/HistoryOrderProduct/Edit"
+                                                data-dismiss=""
+                                                style="width: 100%;">
+                                            <span class="glyphicon glyphicon-ok-sign"></span> Cập nhật
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="button" class="btn btn-danger" data-toggle="modal" data-target="#cancel-@items.OrderID">
+                            <i class="glyphicon glyphicon-remove"></i>
+                        </button>
+
+                        @*Model Cancel*@
+                        <div class="modal fade" id="cancel-@items.OrderID" tabindex="-1" role="dialog" aria-labelledby="edit" 
+                                aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content" style="border-radius: 10px;">
+
+                                    <div class="modal-header">
+                                        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+                                            <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+                                        </button>
+                                        <h4 class="modal-title custom_align" id="Heading">Hủy bỏ đơn</h4>
+                                    </div>
+
+                                    <div class="modal-body">
+                                        <div class="alert alert-danger">
+                                            <span class="glyphicon glyphicon-warning-sign"></span>
+                                            Bạn có chắc chắn hủy đặt với đơn này không?
+                                        </div>
+                                    </div>
+
+                                    <div class="modal-footer">
+                                        <button type="button" class="btnCancelOrder btn btn-success"
+                                                data-id="@items.OrderID"
+                                                data-fromUserName="@currentEmployee.UserName"
+                                                data-url="/HistoryOrderProduct/Canceled"
+                                                data-dismiss="modal">
+                                            <span class="glyphicon glyphicon-ok-sign"></span> Đồng ý
+                                        </button>
+                                        <button type="button" class="btn btn-default" data-dismiss="modal">
+                                            <span class="glyphicon glyphicon-remove"></span>
+                                            Từ chối
+                                        </button>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                }
+
+            </tr>
+        }
+    </tbody>
+
+</table>
